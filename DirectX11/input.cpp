@@ -529,16 +529,43 @@ void ClearKeyBindings()
 	actions.clear();
 }
 
+bool isForegroundProcess(const std::wstring& processName) {
+    HWND hwnd = GetForegroundWindow();
+    if (hwnd == NULL) {
+        return false;
+    }
+    DWORD processId = 0;
+    GetWindowThreadProcessId(hwnd, &processId);
+
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
+    if (hProcess == NULL) {
+        return false;
+    }
+
+    wchar_t processPath[MAX_PATH];
+    if (GetModuleFileNameExW(hProcess, NULL, processPath, MAX_PATH) == 0) {
+        CloseHandle(hProcess);
+        return false;
+    }
+    CloseHandle(hProcess);
+
+    std::filesystem::path executablePath(processPath);
+    std::wstring executableName = executablePath.filename();
+
+    return executableName == processName;
+}
+
 static bool CheckForegroundWindow()
 {
-	DWORD pid;
-
 	if (!G->check_foreground_window)
 		return true;
 
-	GetWindowThreadProcessId(GetForegroundWindow(), &pid);
+  wchar_t target[MAX_PATH];
+  if (GetIniString(L"Loader", L"Target", NULL, target, MAX_PATH) == 0) {
+      return true;
+  }
 
-	return (pid == GetCurrentProcessId());
+  return isForegroundProcess(target);
 }
 
 bool DispatchInputEvents(HackerDevice *device)
