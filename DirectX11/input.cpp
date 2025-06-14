@@ -548,9 +548,13 @@ bool isForegroundProcess(const std::wstring& processName) {
         return false;
     }
     CloseHandle(hProcess);
-
-    std::filesystem::path executablePath(processPath);
-    std::wstring executableName = executablePath.filename();
+	
+    std::wstring processPathStr(processPath);
+    size_t pos = processPathStr.find_last_of(L'\\');
+    if (pos == std::wstring::npos) {
+        return false;
+    }
+    std::wstring executableName = processPathStr.substr(pos + 1);
 
     return executableName == processName;
 }
